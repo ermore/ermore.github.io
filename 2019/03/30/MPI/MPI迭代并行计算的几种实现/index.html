@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="ch-zh">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.0.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.0.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.0.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.0.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '7.0.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="jacobi 迭代并行计算的几种实现 学习《高性能计算之并行编程技术 —— MPI并行程序设计》都志辉编写的过程中的一些学习笔记.  jacobi迭代算法基本思路和串行版本的实现简单介绍一下jacobi迭代算法.(与我了解的数值迭代求解线性方程组的jacobi迭代算法不同,由于主要是将MPI计算的应用，所有对算法本身没有太去关注)，按照书上给定的迭代算法的思路进行介绍.  对于给定的矩阵$A[n,">
+<meta name="keywords" content="c++,MPI">
+<meta property="og:type" content="article">
+<meta property="og:title" content="jacobi 迭代并行计算的几种实现">
+<meta property="og:url" content="http://yoursite.com/2019/03/30/MPI/MPI迭代并行计算的几种实现/index.html">
+<meta property="og:site_name" content="ERMORE">
+<meta property="og:description" content="jacobi 迭代并行计算的几种实现 学习《高性能计算之并行编程技术 —— MPI并行程序设计》都志辉编写的过程中的一些学习笔记.  jacobi迭代算法基本思路和串行版本的实现简单介绍一下jacobi迭代算法.(与我了解的数值迭代求解线性方程组的jacobi迭代算法不同,由于主要是将MPI计算的应用，所有对算法本身没有太去关注)，按照书上给定的迭代算法的思路进行介绍.  对于给定的矩阵$A[n,">
+<meta property="og:locale" content="ch-zh">
+<meta property="og:image" content="http://yoursite.com/image/MPI/jacobi/knote.001.jpeg">
+<meta property="og:image" content="http://yoursite.com/image/MPI/jacobi/knote.002.jpeg">
+<meta property="og:image" content="http://yoursite.com/image/MPI/jacobi/knote.003.jpeg">
+<meta property="og:image" content="http://yoursite.com/image/MPI/jacobi/knote.004.jpeg">
+<meta property="og:image" content="http://yoursite.com/image/MPI/jacobi/knote.005.jpeg">
+<meta property="og:updated_time" content="2019-03-31T12:19:54.984Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="jacobi 迭代并行计算的几种实现">
+<meta name="twitter:description" content="jacobi 迭代并行计算的几种实现 学习《高性能计算之并行编程技术 —— MPI并行程序设计》都志辉编写的过程中的一些学习笔记.  jacobi迭代算法基本思路和串行版本的实现简单介绍一下jacobi迭代算法.(与我了解的数值迭代求解线性方程组的jacobi迭代算法不同,由于主要是将MPI计算的应用，所有对算法本身没有太去关注)，按照书上给定的迭代算法的思路进行介绍.  对于给定的矩阵$A[n,">
+<meta name="twitter:image" content="http://yoursite.com/image/MPI/jacobi/knote.001.jpeg">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="http://yoursite.com/2019/03/30/MPI/MPI迭代并行计算的几种实现/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>jacobi 迭代并行计算的几种实现 | ERMORE</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="ch-zh">
+
+  
+  
+    
+  
+
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">ERMORE</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">Stay Hungry, Stay Foolish</p>
+      
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>Home</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>Tags</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>Categories</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>Archives</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/03/30/MPI/MPI迭代并行计算的几种实现/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="ermore">
+      <meta itemprop="description" content="miaozh个人站，主要涉及个人学习知识共享、实践教程、前沿技术，生活爱好等各个方面">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="ERMORE">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">jacobi 迭代并行计算的几种实现
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2019-03-30 00:38:36" itemprop="dateCreated datePublished" datetime="2019-03-30T00:38:36+08:00">2019-03-30</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Edited on</span>
+                
+                <time title="Modified: 2019-03-31 20:19:54" itemprop="dateModified" datetime="2019-03-31T20:19:54+08:00">2019-03-31</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/MPI学习笔记/" itemprop="url" rel="index"><span itemprop="name">MPI学习笔记</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="jacobi-迭代并行计算的几种实现"><a href="#jacobi-迭代并行计算的几种实现" class="headerlink" title="jacobi 迭代并行计算的几种实现"></a>jacobi 迭代并行计算的几种实现</h1><blockquote>
+<p>学习《高性能计算之并行编程技术 —— MPI并行程序设计》都志辉编写的过程中的一些学习笔记.</p>
+</blockquote>
+<h2 id="jacobi迭代算法基本思路和串行版本的实现"><a href="#jacobi迭代算法基本思路和串行版本的实现" class="headerlink" title="jacobi迭代算法基本思路和串行版本的实现"></a>jacobi迭代算法基本思路和串行版本的实现</h2><p>简单介绍一下jacobi迭代算法.(与我了解的数值迭代求解线性方程组的jacobi迭代算法不同,由于主要是将MPI计算的应用，所有对算法本身没有太去关注)，按照书上给定的迭代算法的思路进行介绍.</p>
+<p><img src="/image/MPI/jacobi/knote.001.jpeg" alt="matirx"></p>
+<p>对于给定的矩阵$A[n,n]$中,在每一步迭代过程中需要对矩阵内部的元素需要执行一下操作:</p>
+<script type="math/tex; mode=display">A^n_{i,j}=(A_{i-1,j}+A_{i+1,j}+A_{i,j+1}+A_{i,j-1})/4</script><p><strong>例子</strong>:矩阵$A[5,5]$其初始值边都为100,中间内部的值都为0,执行完一次迭代矩阵的值改变成$A1[5,5]$ :</p>
+<p><img src="/image/MPI/jacobi/knote.002.jpeg" alt="示意图"></p>
+<h3 id="jacobi迭代的串行版本-c"><a href="#jacobi迭代的串行版本-c" class="headerlink" title="jacobi迭代的串行版本(c++)"></a>jacobi迭代的串行版本(c++)</h3><p>整个串行的版本将jacobi迭代写成函数，为了方便之后多种MPI并行方式的实现，每种实现方法封装到一个函数中即可.</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;iostream&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 定义矩阵的维度</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> N 5</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 函数声明使用默认参数</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">PrintMatrix</span><span class="params">(<span class="keyword">double</span> **A , <span class="keyword">int</span> row, <span class="keyword">int</span> col , <span class="keyword">int</span> begin_row = <span class="number">0</span> , <span class="keyword">int</span> begin_col = <span class="number">0</span> )</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 输出矩阵 从 (begin_row,begin_cow) 位置开始输出 输出row行和col列的内容</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">PrintMatrix</span><span class="params">(<span class="keyword">double</span> **A , <span class="keyword">int</span> row, <span class="keyword">int</span> col , <span class="keyword">int</span> begin_row , <span class="keyword">int</span> begin_col)</span></span>&#123;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">for</span>(<span class="keyword">unsigned</span> <span class="keyword">int</span> i = begin_row ; i &lt; begin_row + row ; ++i)&#123;</span><br><span class="line">        <span class="keyword">for</span>(<span class="keyword">unsigned</span> <span class="keyword">int</span> j = begin_col ; j &lt; begin_col + col ; ++j)&#123;</span><br><span class="line">            <span class="built_in">std</span>::<span class="built_in">cout</span>.width(<span class="number">10</span>); <span class="comment">// 目的输出矩阵格式优美</span></span><br><span class="line">            <span class="built_in">std</span>::<span class="built_in">cout</span>&lt;&lt;A[i][j]&lt;&lt;<span class="string">"  "</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="built_in">std</span>::<span class="built_in">cout</span>&lt;&lt;<span class="string">"\n"</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 串行版本的实现</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">Jacobi</span><span class="params">()</span></span>&#123;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 声明矩阵 同时分配内存</span></span><br><span class="line">    <span class="keyword">double</span> **A,**B;  <span class="comment">// 使用指针的方式给矩阵进行初始化</span></span><br><span class="line">    A = <span class="keyword">new</span> <span class="keyword">double</span>* [N];</span><br><span class="line">    B = <span class="keyword">new</span> <span class="keyword">double</span>* [N];</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">for</span>(<span class="keyword">unsigned</span> <span class="keyword">int</span> i = <span class="number">0</span>; i &lt; N ; ++i )&#123;</span><br><span class="line">        A[i] = <span class="keyword">new</span> <span class="keyword">double</span>[N];</span><br><span class="line">        B[i] = <span class="keyword">new</span> <span class="keyword">double</span>[N];</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 给矩阵赋予初始值 A B 矩阵</span></span><br><span class="line">    <span class="keyword">for</span>(<span class="keyword">unsigned</span> <span class="keyword">int</span> i = <span class="number">0</span> ; i &lt; N ; ++i)&#123;</span><br><span class="line">        <span class="keyword">for</span>(<span class="keyword">unsigned</span> <span class="keyword">int</span> j = <span class="number">0</span> ; j &lt; N ; ++j)&#123;</span><br><span class="line">            <span class="keyword">if</span>(i == <span class="number">0</span> || i == N<span class="number">-1</span> ) A[i][j] = B[i][j] = <span class="number">100</span>; </span><br><span class="line">            <span class="keyword">else</span> <span class="keyword">if</span>( j == <span class="number">0</span> || j == N<span class="number">-1</span>) A[i][j] = B[i][j] = <span class="number">100</span>; </span><br><span class="line">            <span class="keyword">else</span> A[i][j] = B[i][j] = <span class="number">0</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 先输出矩阵查看矩阵初始化是否正确</span></span><br><span class="line">    <span class="built_in">std</span>::<span class="built_in">cout</span>&lt;&lt;<span class="string">"A矩阵的初始化值:\n"</span>;</span><br><span class="line">    PrintMatrix(A,N,N);</span><br><span class="line">    <span class="built_in">std</span>::<span class="built_in">cout</span>&lt;&lt;<span class="string">"\nB矩阵的初始化值:\n"</span>;</span><br><span class="line">    PrintMatrix(B,N,N);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 开始迭代 假设迭代步数5</span></span><br><span class="line">    <span class="keyword">for</span>(<span class="keyword">unsigned</span> k = <span class="number">0</span> ; k &lt; <span class="number">5</span> ; ++ k)&#123;</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">for</span>(<span class="keyword">unsigned</span> <span class="keyword">int</span> i = <span class="number">1</span> ; i &lt; N<span class="number">-1</span> ; ++i)&#123;</span><br><span class="line">            <span class="keyword">for</span>(<span class="keyword">unsigned</span> <span class="keyword">int</span> j = <span class="number">1</span> ; j &lt; N<span class="number">-1</span> ; ++j)&#123;</span><br><span class="line">                B[i][j] = (A[i<span class="number">-1</span>][j] + A[i+<span class="number">1</span>][j] + A[i][j+<span class="number">1</span>] + A[i][j<span class="number">-1</span>])*<span class="number">0.25</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">for</span>(<span class="keyword">unsigned</span> <span class="keyword">int</span> i = <span class="number">1</span> ; i &lt; N<span class="number">-1</span> ; ++i)&#123;</span><br><span class="line">            <span class="keyword">for</span>(<span class="keyword">unsigned</span> <span class="keyword">int</span> j = <span class="number">1</span> ; j &lt; N<span class="number">-1</span> ; ++j)&#123;</span><br><span class="line">                A[i][j] = B[i][j];</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="built_in">std</span>::<span class="built_in">cout</span>&lt;&lt;<span class="string">"第"</span>&lt;&lt;k+<span class="number">1</span>&lt;&lt;<span class="string">"次迭代的计算结果:\n"</span>;</span><br><span class="line">        PrintMatrix(A,N,N);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 释放内存即可.</span></span><br><span class="line">    <span class="keyword">for</span>(<span class="keyword">unsigned</span> <span class="keyword">int</span> i = <span class="number">0</span> ; i &lt; N ; ++i )&#123;</span><br><span class="line">        <span class="keyword">delete</span>[] A[i];</span><br><span class="line">        <span class="keyword">delete</span>[] B[i];</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">delete</span>[] A;</span><br><span class="line">    <span class="keyword">delete</span>[] B;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line"></span><br><span class="line">    Jacobi(); <span class="comment">// 调用串行计算的函数</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>计算结果如下:<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line">A矩阵的初始化值:</span><br><span class="line">       100         100         100         100         100  </span><br><span class="line">       100           0           0           0         100  </span><br><span class="line">       100           0           0           0         100  </span><br><span class="line">       100           0           0           0         100  </span><br><span class="line">       100         100         100         100         100  </span><br><span class="line"></span><br><span class="line">B矩阵的初始化值:</span><br><span class="line">       100         100         100         100         100  </span><br><span class="line">       100           0           0           0         100  </span><br><span class="line">       100           0           0           0         100  </span><br><span class="line">       100           0           0           0         100  </span><br><span class="line">       100         100         100         100         100  </span><br><span class="line">第1次迭代的计算结果:</span><br><span class="line">       100         100         100         100         100  </span><br><span class="line">       100          50          25          50         100  </span><br><span class="line">       100          25           0          25         100  </span><br><span class="line">       100          50          25          50         100  </span><br><span class="line">       100         100         100         100         100  </span><br><span class="line">第2次迭代的计算结果:</span><br><span class="line">       100         100         100         100         100  </span><br><span class="line">       100        62.5          50        62.5         100  </span><br><span class="line">       100          50          25          50         100  </span><br><span class="line">       100        62.5          50        62.5         100  </span><br><span class="line">       100         100         100         100         100  </span><br><span class="line">第3次迭代的计算结果:</span><br><span class="line">       100         100         100         100         100  </span><br><span class="line">       100          75        62.5          75         100  </span><br><span class="line">       100        62.5          50        62.5         100  </span><br><span class="line">       100          75        62.5          75         100  </span><br><span class="line">       100         100         100         100         100  </span><br><span class="line">第4次迭代的计算结果:</span><br><span class="line">       100         100         100         100         100  </span><br><span class="line">       100       81.25          75       81.25         100  </span><br><span class="line">       100          75        62.5          75         100  </span><br><span class="line">       100       81.25          75       81.25         100  </span><br><span class="line">       100         100         100         100         100  </span><br><span class="line">第5次迭代的计算结果:</span><br><span class="line">       100         100         100         100         100  </span><br><span class="line">       100        87.5       81.25        87.5         100  </span><br><span class="line">       100       81.25          75       81.25         100  </span><br><span class="line">       100        87.5       81.25        87.5         100  </span><br><span class="line">       100         100         100         100         100</span><br></pre></td></tr></table></figure></p>
+<h2 id="并行版本的jacobi思路和实现"><a href="#并行版本的jacobi思路和实现" class="headerlink" title="并行版本的jacobi思路和实现."></a>并行版本的jacobi思路和实现.</h2><h3 id="并行版本的jacobi思路"><a href="#并行版本的jacobi思路" class="headerlink" title="并行版本的jacobi思路"></a>并行版本的jacobi思路</h3><h4 id="原则划分"><a href="#原则划分" class="headerlink" title="原则划分"></a>原则划分</h4><p>由于使用C++语言进行MPI的并行化,在C++中矩阵/数组的存放一般都是以行为主的存放方式，故将矩阵按照行的方式进行切分.</p>
+<p><img src="/image/MPI/jacobi/knote.003.jpeg" alt></p>
+<p>根据进程的个数M,将$A[n,n]$的矩阵按照行的方式切分成M份.<br><strong>例子</strong>:矩阵将矩阵$A[8,8]$,切分成3份。</p>
+<p><img src="/image/MPI/jacobi/knote.004.jpeg" alt></p>
+<p>根据$8/3=2$,前面2个进程每个进程存放行数为2,最后一个进程存放的行数$8-2*2=4$</p>
+<h4 id="细节处理"><a href="#细节处理" class="headerlink" title="细节处理"></a>细节处理</h4><p>此时若需要执行上述jacobi迭代$A_{i,j}=(A_{i-1,j}+A_{i+1,j}+A_{i,j+1}+A_{i,j-1})/4$的操作时。每个进程只需处理属于各自的数据即可,但是当每个进程执行到该进程数据的行顶部或者底部时，需要依赖上一个进程的最后一行数据，或者下一个进程的第一行数据才能执行迭代操作，故需要给每个进程多安排两行数据，用来存放上下进程传递进来的数据。此时就需要进行进程之间的数据传递,而<strong>MPI</strong>就是负责制定进程间数据传递规则的.</p>
+<p><img src="/image/MPI/jacobi/knote.005.jpeg" alt></p>
+<h3 id="使用不同通信方式计算jacobi迭代的值"><a href="#使用不同通信方式计算jacobi迭代的值" class="headerlink" title="使用不同通信方式计算jacobi迭代的值."></a>使用不同通信方式计算jacobi迭代的值.</h3><p>根据<strong>MPI</strong>中提供不同方式的发送接收形式，提供以下四种方式的计算jacobi的迭代计算.</p>
+<ol>
+<li>使用阻塞式的发送接收</li>
+<li>使用捆绑阻塞式发送接收</li>
+<li>使用非阻塞式发送接收</li>
+<li>使用重复非阻塞式发送接收</li>
+</ol>
+<p>由于跟串行处理的类似,将jacobi迭代处理的部分，封装成一个函数，直接使用,目的方便之后，多种方式之间的效率对比.</p>
+<p>几个并行实现都同一个输出矩阵的函数,其具体实现就是与串行版本的一样.</p>
+<p>说明两个部分: </p>
+<p>1) 在这里需要注意进程发送之间可能会产生死锁的现象.程序中有说明那些部分会产生死锁的现象.<br>为了方便每个进程都执行相同的发送接收操作，故引入虚拟进程的概念$(MPI_PROC_NULL)$.(对第一个进程而言，不可能从上一个进程接收最后一行数据，也不可能将第一行数据发送给上一个进程；对最后一个进程而言，不可能发送和接收下一个进程的数据了,当引入<strong>虚拟进程</strong>后，实现上对应的$MPI_Send()$和$MPI_Recv()$不执行任何操作.)<br>不引入<strong>虚拟进程</strong>的话，发送接收数据需要判断当前进程是否为第一个进程或者最后一个进程，不太方便.</p>
+<p>2) 函数参数 主要用来指定矩阵迭代的步数(num)</p>
+<p>3) 在函数的最开始定义了宏变量<br><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> N 8</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> NUM 100</span></span><br></pre></td></tr></table></figure></p>
+<h4 id="1-阻塞式发送接收"><a href="#1-阻塞式发送接收" class="headerlink" title="1. 阻塞式发送接收"></a>1. 阻塞式发送接收</h4><p>主要使用到的函数及其说明:<br><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">MPI_Send</span><span class="params">()</span></span>; <span class="comment">// 向进程发送</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">MPI_Recv</span><span class="params">()</span></span>; <span class="comment">// 从进程接收</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">MPI_Barrier</span><span class="params">()</span> <span class="comment">// 进程同步操作</span></span></span><br></pre></td></tr></table></figure></p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 最原始的MPI并行版本(雅可比迭代并行 阻塞发送)</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">MPI_Send_jacobi</span><span class="params">(<span class="keyword">int</span> num)</span></span>&#123;</span><br><span class="line">	</span><br><span class="line">	MPI_Status status;</span><br><span class="line">	<span class="keyword">int</span> rank,size;</span><br><span class="line">	MPI_Comm comm = MPI_COMM_WORLD;</span><br><span class="line"></span><br><span class="line">	MPI_Comm_rank(comm,&amp;rank);</span><br><span class="line">	MPI_Comm_size(comm,&amp;size);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">int</span> row_size = N / size;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span>(rank == size - <span class="number">1</span> ) row_size = N - row_size * rank;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 给进程中的矩阵分配内存空间</span></span><br><span class="line">	<span class="keyword">double</span> **A,**B;</span><br><span class="line"></span><br><span class="line">	A = <span class="keyword">new</span> <span class="keyword">double</span>* [row_size+<span class="number">2</span>];</span><br><span class="line">	B = <span class="keyword">new</span> <span class="keyword">double</span>* [row_size+<span class="number">2</span>];</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span>(<span class="keyword">unsigned</span> <span class="keyword">int</span> i = <span class="number">0</span> ; i &lt; row_size+<span class="number">2</span> ; ++i)&#123;</span><br><span class="line">		A[i] = <span class="keyword">new</span> <span class="keyword">double</span>[N];</span><br><span class="line">		B[i] = <span class="keyword">new</span> <span class="keyword">double</span>[N]; </span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 初始化矩阵</span></span><br><span class="line">	<span class="comment">// 对于每个进程上的数据而言 只有1到row_size 之间行数据是真实本应该存放的</span></span><br><span class="line">	</span><br><span class="line">	<span class="comment">// 0 行数据是应该来自上一个进程的最后一行数据传入该行的数据 (此时初始化都为0)</span></span><br><span class="line">	<span class="comment">// row_size+1 行是应该是下一个进程第一行数据传入该行的数据</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span>(<span class="keyword">int</span> i = <span class="number">0</span> ; i &lt; row_size+<span class="number">2</span> ; ++i )&#123;</span><br><span class="line">	</span><br><span class="line">		<span class="keyword">for</span>(<span class="keyword">int</span> j = <span class="number">0</span> ; j &lt; N ; ++j )&#123;</span><br><span class="line">			<span class="keyword">if</span>(  (i == <span class="number">1</span> &amp;&amp; rank == <span class="number">0</span>) || (rank == size - <span class="number">1</span> &amp;&amp; i == row_size) ) A[i][j] = B[i][j] = NUM;  <span class="comment">// 第一个进程第一行 最后一个进程最后一行</span></span><br><span class="line">			<span class="keyword">else</span> <span class="keyword">if</span>(j == <span class="number">0</span> || j == N<span class="number">-1</span> ) A[i][j] = B[i][j]= NUM;</span><br><span class="line">			<span class="keyword">else</span> A[i][j] = B[i][j]= <span class="number">0</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 由于第一个进程和最后一个进程的特殊性 引入虚拟进程的概念</span></span><br><span class="line">	<span class="comment">// 第一个进程第0行 没有上一个进程 所以不需要传入数据 最后一个进程没有下一个进程 也不需要传入数据</span></span><br><span class="line">	</span><br><span class="line">	<span class="keyword">int</span> pre,next; <span class="comment">// 记录当前进程的上一个进程和下一个进程</span></span><br><span class="line">	pre = rank - <span class="number">1</span>;</span><br><span class="line">	next = rank + <span class="number">1</span>;</span><br><span class="line">	<span class="keyword">if</span>(rank == <span class="number">0</span>)&#123;</span><br><span class="line">		pre = MPI_PROC_NULL;</span><br><span class="line">	&#125;<span class="keyword">else</span> <span class="keyword">if</span> (rank == size - <span class="number">1</span>)&#123;</span><br><span class="line">		next = MPI_PROC_NULL;</span><br><span class="line">	&#125;</span><br><span class="line">	</span><br><span class="line">	<span class="keyword">if</span>(rank == <span class="number">0</span>)&#123;</span><br><span class="line">		<span class="keyword">int</span> aa = <span class="number">1</span>;</span><br><span class="line">		<span class="built_in">std</span>::<span class="built_in">cout</span>&lt;&lt;<span class="string">"初始化矩阵A值:\n"</span>;</span><br><span class="line">		PrintMatrix(A,row_size,N,<span class="number">1</span>,<span class="number">0</span>);</span><br><span class="line">		MPI_Send( &amp;aa , <span class="number">1</span> , MPI_INT , next, <span class="number">1</span> , MPI_COMM_WORLD);</span><br><span class="line">	&#125;<span class="keyword">else</span></span><br><span class="line">	&#123;</span><br><span class="line">		<span class="keyword">int</span> bb = <span class="number">2</span> ,aa = <span class="number">1</span>; </span><br><span class="line">		MPI_Recv(&amp;bb, <span class="number">1</span> , MPI_INT , pre , <span class="number">1</span> , MPI_COMM_WORLD , &amp;status);</span><br><span class="line">		PrintMatrix(A,row_size,N,<span class="number">1</span>,<span class="number">0</span>);</span><br><span class="line">		MPI_Send(&amp;aa, <span class="number">1</span> , MPI_INT , next, <span class="number">1</span> , MPI_COMM_WORLD);	</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">int</span> tag1 = <span class="number">0</span> , tag2 = <span class="number">1</span>; <span class="comment">// 由于需要两次发送 保持两次发送的标志不同啊</span></span><br><span class="line"></span><br><span class="line">	</span><br><span class="line">	<span class="comment">// 开始执行雅可比迭代方法(假设迭代10步即可)</span></span><br><span class="line">	<span class="keyword">for</span>(<span class="keyword">int</span> k = <span class="number">0</span> ; k&lt;num ;++k)&#123;</span><br><span class="line">		</span><br><span class="line">		<span class="comment">// 一. 将数据传递给不同的进程在进行计算</span></span><br><span class="line">		</span><br><span class="line">		<span class="comment">/*</span></span><br><span class="line"><span class="comment">		// 1. 将上一进程的 row_size 行 数据传递给下一个进程的第0行</span></span><br><span class="line"><span class="comment">		MPI_Send( A[row_size] , N , MPI_INT , next, tag1 , MPI_COMM_WORLD ); // 本进程最后一行数据的发送	</span></span><br><span class="line"><span class="comment">		MPI_Recv( A[0] , N , MPI_INT , pre , tag1 , MPI_COMM_WORLD , &amp;status); // 接收上一个进程的最后一行数据</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">		// 2. 将本进程的第一行数据发给上一个进程row_size+1 行</span></span><br><span class="line"><span class="comment">		MPI_Send( A[1] , N , MPI_INT , pre , tag2 , MPI_COMM_WORLD); // 本进程第一行数据发送</span></span><br><span class="line"><span class="comment">		MPI_Recv( A[row_size+1] , N , MPI_INT , next , tag2 , MPI_COMM_WORLD , &amp;status ); // 接收下一个进程的第1行数据</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">		// 上述操作似乎已经产生了自锁现象	(当使用程序调用发现正常 难道没有出现调用失败的现象吗？)</span></span><br><span class="line"><span class="comment">		// 不一定产生自锁现象，由于标准发送有两种情况，当系统缓存区不够时，则可能产生自锁的现象，但是上</span></span><br><span class="line"><span class="comment">		// 述编写的程序是不安全的，因为不能保证系统缓存区一定存在.</span></span><br><span class="line"><span class="comment">		*/</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">		<span class="comment">// 改进的数据发送, 接收操作</span></span><br><span class="line">		</span><br><span class="line">		<span class="comment">// 1. 上进程的最后一行 传给 下进程的第一行 </span></span><br><span class="line">		<span class="keyword">if</span>(rank == size - <span class="number">1</span> )&#123; <span class="comment">// 保证最后一个进程先接收 </span></span><br><span class="line">			MPI_Recv(A[<span class="number">0</span>] , N , MPI_DOUBLE , pre , tag1 , MPI_COMM_WORLD , &amp;status );</span><br><span class="line">		&#125;<span class="keyword">else</span>&#123;</span><br><span class="line">			MPI_Send(A[row_size] , N , MPI_DOUBLE , next , tag1 , MPI_COMM_WORLD );</span><br><span class="line">			MPI_Recv(A[<span class="number">0</span>] , N , MPI_DOUBLE , pre , tag1 , MPI_COMM_WORLD , &amp;status );</span><br><span class="line">		&#125;</span><br><span class="line">		</span><br><span class="line">		<span class="comment">// 2. 上一个进程最后一行接收 下一个进程的第1行</span></span><br><span class="line">		<span class="keyword">if</span>(rank == <span class="number">0</span> )&#123;</span><br><span class="line">			MPI_Recv(A[row_size+<span class="number">1</span>] , N , MPI_DOUBLE , next , tag2 , MPI_COMM_WORLD , &amp;status);</span><br><span class="line">		&#125;<span class="keyword">else</span>&#123;</span><br><span class="line">			MPI_Send(A[<span class="number">1</span>] , N , MPI_DOUBLE , pre , tag2 , MPI_COMM_WORLD );</span><br><span class="line">			MPI_Recv(A[row_size+<span class="number">1</span>] , N , MPI_DOUBLE , next , tag2 , MPI_COMM_WORLD , &amp;status);</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 接收完成后 对数据进行操作 对每个进程的数据进行传递 边界上的值是不执行操作的</span></span><br><span class="line"></span><br><span class="line">		<span class="keyword">int</span> begin_row , end_row ; </span><br><span class="line">		begin_row = <span class="number">1</span>;</span><br><span class="line">		end_row = row_size;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span>(rank == <span class="number">0</span> )&#123;</span><br><span class="line">			begin_row = <span class="number">2</span>;</span><br><span class="line">		&#125;<span class="keyword">else</span> <span class="keyword">if</span>( rank == size - <span class="number">1</span>)&#123;</span><br><span class="line">			end_row = row_size - <span class="number">1</span> ;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 开始计算</span></span><br><span class="line">		<span class="keyword">for</span>(<span class="keyword">int</span> i = begin_row ; i &lt;= end_row ; ++i)&#123;</span><br><span class="line">			<span class="keyword">for</span>(<span class="keyword">int</span> j = <span class="number">1</span> ; j &lt; N - <span class="number">1</span> ;  ++j)&#123;</span><br><span class="line">				B[i][j] = <span class="number">0.25</span> * ( A[i<span class="number">-1</span>][j] + A[i+<span class="number">1</span>][j] + A[i][j+<span class="number">1</span>] + A[i][j<span class="number">-1</span>] );</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		</span><br><span class="line">		<span class="comment">// 开始将计算结果复制回a矩阵中</span></span><br><span class="line">		<span class="keyword">for</span>(<span class="keyword">int</span> i = begin_row ; i &lt;= end_row ; ++i)&#123;</span><br><span class="line">			<span class="keyword">for</span>(<span class="keyword">int</span> j = <span class="number">1</span>; j &lt; N<span class="number">-1</span> ;++j )&#123;</span><br><span class="line">				A[i][j] = B[i][j];</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 进程排序输出结果.</span></span><br><span class="line">	<span class="comment">// 保证有序的输出 第一个进程先输入 然后在第二进程.... </span></span><br><span class="line"></span><br><span class="line">	MPI_Barrier(MPI_COMM_WORLD);</span><br><span class="line">	<span class="keyword">if</span>(rank == <span class="number">0</span>)&#123;</span><br><span class="line">		<span class="keyword">int</span> aa = <span class="number">0</span>;</span><br><span class="line">		<span class="built_in">std</span>::<span class="built_in">cout</span>&lt;&lt;<span class="string">"(阻塞) 最后计算后的结果: \n"</span>;</span><br><span class="line">		PrintMatrix(A,row_size,N,<span class="number">1</span>,<span class="number">0</span>);</span><br><span class="line">		MPI_Send( &amp;aa , <span class="number">1</span> , MPI_INT , next, <span class="number">1</span> , MPI_COMM_WORLD);</span><br><span class="line">	&#125;<span class="keyword">else</span></span><br><span class="line">	&#123;</span><br><span class="line">		<span class="keyword">int</span> bb = <span class="number">0</span> , aa = <span class="number">1</span> ; </span><br><span class="line">		MPI_Recv( &amp;bb, <span class="number">1</span> , MPI_INT , pre , <span class="number">1</span> , MPI_COMM_WORLD , &amp;status);</span><br><span class="line">		PrintMatrix(A,row_size,N,<span class="number">1</span>,<span class="number">0</span>);</span><br><span class="line">		MPI_Send( &amp;aa , <span class="number">1</span> , MPI_INT , next, <span class="number">1</span> , MPI_COMM_WORLD);	</span><br><span class="line">	&#125;</span><br><span class="line">		</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="2-捆绑阻塞式发送接收"><a href="#2-捆绑阻塞式发送接收" class="headerlink" title="2. 捆绑阻塞式发送接收"></a>2. 捆绑阻塞式发送接收</h3><p>主要是该方式能将发送和接收放在一起进行,减少函数调用.</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 由于上述 每个进程不仅要发送和接送都要两次 </span></span><br><span class="line"><span class="comment">// 故可以使用MPI进行捆绑发送和接收</span></span><br><span class="line"><span class="comment">// 使用函数MPI_Sendrecv() 只是将将两个操作合并成一个函数而已 </span></span><br><span class="line"><span class="comment">// MPI_Sendrecv_replace() 将发送和接收的缓存区变成一个 效率会变慢同时容易产生死锁的现象（ 改缓存区不是系统缓存区 而是自带的缓存区）</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">MPI_Send_jacobi_2</span><span class="params">(<span class="keyword">int</span> num )</span></span>&#123;</span><br><span class="line"></span><br><span class="line">	MPI_Status status;</span><br><span class="line">	<span class="keyword">int</span> rank,size;</span><br><span class="line">	MPI_Comm comm = MPI_COMM_WORLD;</span><br><span class="line"></span><br><span class="line">	MPI_Comm_rank(comm,&amp;rank);</span><br><span class="line">	MPI_Comm_size(comm,&amp;size);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">int</span> row_size = N / size;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span>(rank == size - <span class="number">1</span> ) row_size = N - row_size * rank;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 给进程中的矩阵分配内存空间</span></span><br><span class="line">	<span class="keyword">double</span> **A,**B;</span><br><span class="line"></span><br><span class="line">	A = <span class="keyword">new</span> <span class="keyword">double</span>* [row_size+<span class="number">2</span>];</span><br><span class="line">	B = <span class="keyword">new</span> <span class="keyword">double</span>* [row_size+<span class="number">2</span>];</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span>(<span class="keyword">unsigned</span> <span class="keyword">int</span> i = <span class="number">0</span> ; i &lt; row_size+<span class="number">2</span> ; ++i)&#123;</span><br><span class="line">		A[i] = <span class="keyword">new</span> <span class="keyword">double</span>[N];</span><br><span class="line">		B[i] = <span class="keyword">new</span> <span class="keyword">double</span>[N]; </span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 初始化矩阵</span></span><br><span class="line">	<span class="comment">// 对于每个进程上的数据而言 只有1到row_size 之间行数据是真实本应该存放的</span></span><br><span class="line">	</span><br><span class="line">	<span class="comment">// 0 行数据是应该来自上一个进程的最后一行数据传入该行的数据 (此时初始化都为0)</span></span><br><span class="line">	<span class="comment">// row_size+1 行是应该是下一个进程第一行数据传入该行的数据</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span>(<span class="keyword">int</span> i = <span class="number">0</span> ; i &lt; row_size+<span class="number">2</span> ; ++i )&#123;</span><br><span class="line">	</span><br><span class="line">		<span class="keyword">for</span>(<span class="keyword">int</span> j = <span class="number">0</span> ; j &lt; N ; ++j )&#123;</span><br><span class="line">			<span class="keyword">if</span>(  (i == <span class="number">1</span> &amp;&amp; rank == <span class="number">0</span>) || (rank == size - <span class="number">1</span> &amp;&amp; i == row_size) ) A[i][j] = B[i][j] = NUM;  <span class="comment">// 第一个进程第一行 最后一个进程最后一行</span></span><br><span class="line">			<span class="keyword">else</span> <span class="keyword">if</span>(j == <span class="number">0</span> || j == N<span class="number">-1</span> ) A[i][j] = B[i][j]= NUM;</span><br><span class="line">			<span class="keyword">else</span> A[i][j] = B[i][j]= <span class="number">0</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		</span><br><span class="line">	&#125;</span><br><span class="line">	</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 对于每个进程上的数据而言 只有1到row_size 之间行数据是真实本应该存放的</span></span><br><span class="line">	<span class="comment">// 0 行数据是应该来自上一个进程的最后一行数据传入该行的数据</span></span><br><span class="line">	<span class="comment">// row_size+1 行是应该是下一个进程第一行数据传入该行的数据</span></span><br><span class="line">	</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 由于第一个进程和最后一个进程的特殊性 引入虚拟进程的概念</span></span><br><span class="line">	<span class="comment">// 第一个进程第0行 没有上一个进程 所以不需要传入数据 最后一个进程没有下一个进程 也不需要传入数据</span></span><br><span class="line">	</span><br><span class="line">	<span class="keyword">int</span> pre,next; <span class="comment">// 记录当前进程的上一个进程和下一个进程</span></span><br><span class="line">	pre = rank - <span class="number">1</span>;</span><br><span class="line">	next = rank + <span class="number">1</span>;</span><br><span class="line">	<span class="keyword">if</span>(rank == <span class="number">0</span>)&#123;</span><br><span class="line">		pre = MPI_PROC_NULL;</span><br><span class="line">	&#125;<span class="keyword">else</span> <span class="keyword">if</span> (rank == size - <span class="number">1</span>)&#123;</span><br><span class="line">		next = MPI_PROC_NULL;</span><br><span class="line">	&#125;</span><br><span class="line">	</span><br><span class="line">	<span class="keyword">if</span>(rank == <span class="number">0</span>)&#123;</span><br><span class="line">		<span class="keyword">int</span> aa = <span class="number">1</span>;</span><br><span class="line">		<span class="built_in">std</span>::<span class="built_in">cout</span>&lt;&lt;<span class="string">"初始化矩阵A的值为:\n"</span>;</span><br><span class="line">		PrintMatrix(A,row_size,N,<span class="number">1</span>,<span class="number">0</span>);</span><br><span class="line">		MPI_Send( &amp;aa , <span class="number">1</span> , MPI_INT , next, <span class="number">1</span> , MPI_COMM_WORLD);</span><br><span class="line">	&#125;<span class="keyword">else</span></span><br><span class="line">	&#123;</span><br><span class="line">		<span class="keyword">int</span> bb = <span class="number">2</span> ,aa = <span class="number">1</span>; </span><br><span class="line">		MPI_Recv(&amp;bb, <span class="number">1</span> , MPI_INT , pre , <span class="number">1</span> , MPI_COMM_WORLD , &amp;status);</span><br><span class="line">		PrintMatrix(A,row_size,N,<span class="number">1</span>,<span class="number">0</span>);</span><br><span class="line">		MPI_Send(&amp;aa, <span class="number">1</span> , MPI_INT , next, <span class="number">1</span> , MPI_COMM_WORLD);	</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">int</span> tag1 = <span class="number">0</span> , tag2 = <span class="number">1</span>; <span class="comment">// 由于需要两次发送 保持两次发送的标志不同啊</span></span><br><span class="line">	</span><br><span class="line">	<span class="comment">// 开始执行雅可比迭代方法(假设迭代10步即可)</span></span><br><span class="line">	<span class="keyword">for</span>(<span class="keyword">int</span> k = <span class="number">0</span> ; k&lt;num ;++k)&#123;</span><br><span class="line">		</span><br><span class="line">		<span class="comment">// 一. 将数据传递给不同的进程在进行计算</span></span><br><span class="line">		</span><br><span class="line">		<span class="comment">// 1. 上进程的最后一行 传给 下进程的第一行 </span></span><br><span class="line">		</span><br><span class="line">		<span class="comment">//这种情况还是会出现自锁的现象</span></span><br><span class="line">		MPI_Sendrecv(A[row_size] , N ,MPI_DOUBLE , next , tag1 , A[<span class="number">0</span>] , N , MPI_DOUBLE , pre ,tag1 , MPI_COMM_WORLD , &amp;status ); <span class="comment">// 使用了两个缓存区接收混存区和发送缓存区</span></span><br><span class="line">		</span><br><span class="line">		<span class="comment">// 2. 上一个进程最后一行接收 下一个进程的第1行</span></span><br><span class="line">		</span><br><span class="line">		MPI_Sendrecv(A[<span class="number">1</span>] , N ,MPI_DOUBLE , pre , tag2 , A[row_size+<span class="number">1</span>] , N , MPI_DOUBLE , next ,tag2 , MPI_COMM_WORLD , &amp;status ); <span class="comment">// 使用了两个缓存区接收混存区和发送缓存区</span></span><br><span class="line">		</span><br><span class="line">		<span class="comment">// 接收完成后 对数据进行操作 对每个进程的数据进行传递 边界上的值是不执行操作的</span></span><br><span class="line"></span><br><span class="line">		<span class="keyword">int</span> begin_row , end_row ; </span><br><span class="line">		begin_row = <span class="number">1</span>;</span><br><span class="line">		end_row = row_size;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span>(rank == <span class="number">0</span> )&#123;</span><br><span class="line">			begin_row = <span class="number">2</span>;</span><br><span class="line">		&#125;<span class="keyword">else</span> <span class="keyword">if</span>( rank == size - <span class="number">1</span>)&#123;</span><br><span class="line">			end_row = row_size - <span class="number">1</span> ;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 开始计算</span></span><br><span class="line">		<span class="keyword">for</span>(<span class="keyword">int</span> i = begin_row ; i &lt;= end_row ; ++i)&#123;</span><br><span class="line">			<span class="keyword">for</span>(<span class="keyword">int</span> j = <span class="number">1</span> ; j &lt; N - <span class="number">1</span> ;  ++j)&#123;</span><br><span class="line">				B[i][j] = <span class="number">0.25</span> * ( A[i<span class="number">-1</span>][j] + A[i+<span class="number">1</span>][j] + A[i][j+<span class="number">1</span>] + A[i][j<span class="number">-1</span>] );</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		</span><br><span class="line">		<span class="comment">// 开始将计算结果复制回a矩阵中</span></span><br><span class="line">		<span class="keyword">for</span>(<span class="keyword">int</span> i = begin_row ; i &lt;= end_row ; ++i)&#123;</span><br><span class="line">			<span class="keyword">for</span>(<span class="keyword">int</span> j = <span class="number">1</span>; j &lt; N<span class="number">-1</span> ;++j )&#123;</span><br><span class="line">				A[i][j] = B[i][j];</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 进程排序输出结果.</span></span><br><span class="line">	<span class="comment">// 保证有序的输出 第一个进程先输入 然后在第二进程.... </span></span><br><span class="line"></span><br><span class="line">	MPI_Barrier(MPI_COMM_WORLD);</span><br><span class="line">	<span class="keyword">if</span>(rank == <span class="number">0</span>)&#123;</span><br><span class="line">		<span class="keyword">int</span> aa = <span class="number">0</span>;</span><br><span class="line">		<span class="built_in">std</span>::<span class="built_in">cout</span>&lt;&lt;<span class="string">"(阻塞)合并发送接收 最后计算后的结果: \n"</span>;</span><br><span class="line">		PrintMatrix(A,row_size,N,<span class="number">1</span>,<span class="number">0</span>);</span><br><span class="line">		MPI_Send( &amp;aa , <span class="number">1</span> , MPI_INT , next, <span class="number">1</span> , MPI_COMM_WORLD);</span><br><span class="line">	&#125;<span class="keyword">else</span></span><br><span class="line">	&#123;</span><br><span class="line">		<span class="keyword">int</span> bb = <span class="number">0</span> , aa = <span class="number">1</span> ; </span><br><span class="line">		MPI_Recv( &amp;bb, <span class="number">1</span> , MPI_INT , pre , <span class="number">1</span> , MPI_COMM_WORLD , &amp;status);</span><br><span class="line">		PrintMatrix(A,row_size,N,<span class="number">1</span>,<span class="number">0</span>);</span><br><span class="line">		MPI_Send( &amp;aa , <span class="number">1</span> , MPI_INT , next, <span class="number">1</span> , MPI_COMM_WORLD);	</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="3-非阻塞发送和接收"><a href="#3-非阻塞发送和接收" class="headerlink" title="3. 非阻塞发送和接收"></a>3. 非阻塞发送和接收</h3><p>使用非阻塞的方式进行发送和接收操作.</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 使用非阻塞的方式来进行发送和接收消息</span></span><br><span class="line"><span class="comment">// 目的就是尽早通信 尽晚完成通信  </span></span><br><span class="line"><span class="comment">// 注意事项 由于这个使用b矩阵进行发送 ( 之前发送都是使用a矩阵进行发送 所以不会出现问题)</span></span><br><span class="line"><span class="comment">//  1. 必须保证初始值b 与 A 相同  因为之后修改不会修改到边界值 所以要保证b矩阵的边界上的值与a边界值相同即可 </span></span><br><span class="line"><span class="comment">//  2. 这里先要保证 在循环前每个进程都有其他进程的数据</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">MPI_ISend_jacobi</span><span class="params">(<span class="keyword">int</span> num )</span></span>&#123;</span><br><span class="line"></span><br><span class="line">	MPI_Status status;</span><br><span class="line">	<span class="keyword">int</span> rank,size;</span><br><span class="line">	MPI_Comm comm = MPI_COMM_WORLD;</span><br><span class="line"></span><br><span class="line">	MPI_Comm_rank(comm,&amp;rank);</span><br><span class="line">	MPI_Comm_size(comm,&amp;size);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">int</span> row_size = N / size;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span>(rank == size - <span class="number">1</span> ) row_size = N - row_size * rank;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 给进程中的矩阵分配内存空间</span></span><br><span class="line">	<span class="keyword">double</span> **A,**B;</span><br><span class="line"></span><br><span class="line">	A = <span class="keyword">new</span> <span class="keyword">double</span>* [row_size+<span class="number">2</span>];</span><br><span class="line">	B = <span class="keyword">new</span> <span class="keyword">double</span>* [row_size+<span class="number">2</span>];</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span>(<span class="keyword">unsigned</span> <span class="keyword">int</span> i = <span class="number">0</span> ; i &lt; row_size+<span class="number">2</span> ; ++i)&#123;</span><br><span class="line">		A[i] = <span class="keyword">new</span> <span class="keyword">double</span>[N];</span><br><span class="line">		B[i] = <span class="keyword">new</span> <span class="keyword">double</span>[N]; </span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 初始化矩阵</span></span><br><span class="line">	<span class="comment">// 对于每个进程上的数据而言 只有1到row_size 之间行数据是真实本应该存放的</span></span><br><span class="line">	</span><br><span class="line">	<span class="comment">// 0 行数据是应该来自上一个进程的最后一行数据传入该行的数据 (此时初始化都为0)</span></span><br><span class="line">	<span class="comment">// row_size+1 行是应该是下一个进程第一行数据传入该行的数据</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span>(<span class="keyword">int</span> i = <span class="number">0</span> ; i &lt; row_size+<span class="number">2</span> ; ++i )&#123;</span><br><span class="line">	</span><br><span class="line">		<span class="keyword">for</span>(<span class="keyword">int</span> j = <span class="number">0</span> ; j &lt; N ; ++j )&#123;</span><br><span class="line">			<span class="keyword">if</span>(  (i == <span class="number">1</span> &amp;&amp; rank == <span class="number">0</span>) || (rank == size - <span class="number">1</span> &amp;&amp; i == row_size) ) A[i][j] = B[i][j] = NUM;  <span class="comment">// 第一个进程第一行 最后一个进程最后一行</span></span><br><span class="line">			<span class="keyword">else</span> <span class="keyword">if</span>(j == <span class="number">0</span> || j == N<span class="number">-1</span> ) A[i][j] = B[i][j]= NUM;</span><br><span class="line">			<span class="keyword">else</span> A[i][j] = B[i][j]= <span class="number">0</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 对于每个进程上的数据而言 只有1到row_size 之间行数据是真实本应该存放的</span></span><br><span class="line">	<span class="comment">// 0 行数据是应该来自上一个进程的最后一行数据传入该行的数据</span></span><br><span class="line">	<span class="comment">// row_size+1 行是应该是下一个进程第一行数据传入该行的数据</span></span><br><span class="line">	</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 由于第一个进程和最后一个进程的特殊性 引入虚拟进程的概念</span></span><br><span class="line">	<span class="comment">// 第一个进程第0行 没有上一个进程 所以不需要传入数据 最后一个进程没有下一个进程 也不需要传入数据</span></span><br><span class="line">	</span><br><span class="line">	<span class="keyword">int</span> pre,next; <span class="comment">// 记录当前进程的上一个进程和下一个进程</span></span><br><span class="line">	pre = rank - <span class="number">1</span>;</span><br><span class="line">	next = rank + <span class="number">1</span>;</span><br><span class="line">	<span class="keyword">if</span>(rank == <span class="number">0</span>)&#123;</span><br><span class="line">		pre = MPI_PROC_NULL;</span><br><span class="line">	&#125;<span class="keyword">else</span> <span class="keyword">if</span> (rank == size - <span class="number">1</span>)&#123;</span><br><span class="line">		next = MPI_PROC_NULL;</span><br><span class="line">	&#125;</span><br><span class="line">	</span><br><span class="line">	<span class="keyword">if</span>(rank == <span class="number">0</span>)&#123;</span><br><span class="line">		<span class="keyword">int</span> aa = <span class="number">1</span>;</span><br><span class="line">		<span class="built_in">std</span>::<span class="built_in">cout</span>&lt;&lt;<span class="string">"计算前A矩阵的结果: \n"</span>;</span><br><span class="line">		PrintMatrix(A,row_size,N,<span class="number">1</span>,<span class="number">0</span>);</span><br><span class="line">		MPI_Send( &amp;aa , <span class="number">1</span> , MPI_INT , next, <span class="number">1</span> , MPI_COMM_WORLD);</span><br><span class="line">	&#125;<span class="keyword">else</span></span><br><span class="line">	&#123;</span><br><span class="line">		<span class="keyword">int</span> bb = <span class="number">2</span> ,aa = <span class="number">1</span>; </span><br><span class="line">		MPI_Recv(&amp;bb, <span class="number">1</span> , MPI_INT , pre , <span class="number">1</span> , MPI_COMM_WORLD , &amp;status);</span><br><span class="line">		PrintMatrix(A,row_size,N,<span class="number">1</span>,<span class="number">0</span>);</span><br><span class="line">		MPI_Send(&amp;aa, <span class="number">1</span> , MPI_INT , next, <span class="number">1</span> , MPI_COMM_WORLD);	</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">int</span> tag1 = <span class="number">0</span> , tag2 = <span class="number">1</span>; <span class="comment">// 由于需要两次发送 保持两次发送的标志不同啊</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">int</span> begin_row , end_row ; </span><br><span class="line">	begin_row = <span class="number">1</span>;</span><br><span class="line">	end_row = row_size;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span>(rank == <span class="number">0</span> )&#123;</span><br><span class="line">		begin_row = <span class="number">2</span>;</span><br><span class="line">	&#125;<span class="keyword">else</span> <span class="keyword">if</span>( rank == size - <span class="number">1</span>)&#123;</span><br><span class="line">		end_row = row_size - <span class="number">1</span> ;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	MPI_Request request[<span class="number">4</span>];</span><br><span class="line">	</span><br><span class="line">	<span class="keyword">if</span>(rank == size - <span class="number">1</span> )&#123; <span class="comment">// 保证最后一个进程先接收 </span></span><br><span class="line">		MPI_Recv(A[<span class="number">0</span>] , N , MPI_DOUBLE , pre , tag1 , MPI_COMM_WORLD , &amp;status );</span><br><span class="line">	&#125;<span class="keyword">else</span>&#123;</span><br><span class="line">		MPI_Send(A[row_size] , N , MPI_DOUBLE , next , tag1 , MPI_COMM_WORLD );</span><br><span class="line">		MPI_Recv(A[<span class="number">0</span>] , N , MPI_DOUBLE , pre , tag1 , MPI_COMM_WORLD , &amp;status );</span><br><span class="line">	&#125;</span><br><span class="line">		</span><br><span class="line">	<span class="comment">// 2. 上一个进程最后一行接收 下一个进程的第1行</span></span><br><span class="line">	<span class="keyword">if</span>(rank == <span class="number">0</span> )&#123;</span><br><span class="line">		MPI_Recv(A[row_size+<span class="number">1</span>] , N , MPI_DOUBLE , next , tag2 , MPI_COMM_WORLD , &amp;status);</span><br><span class="line">	&#125;<span class="keyword">else</span>&#123;</span><br><span class="line">		MPI_Send(A[<span class="number">1</span>] , N , MPI_DOUBLE , pre , tag2 , MPI_COMM_WORLD );</span><br><span class="line">		MPI_Recv(A[row_size+<span class="number">1</span>] , N , MPI_DOUBLE , next , tag2 , MPI_COMM_WORLD , &amp;status);</span><br><span class="line">	&#125;</span><br><span class="line">	</span><br><span class="line">	<span class="comment">// 开始执行雅可比迭代方法(假设迭代10步即可)</span></span><br><span class="line">	<span class="keyword">for</span>(<span class="keyword">int</span> k = <span class="number">0</span> ; k&lt;num ;++k)&#123;</span><br><span class="line">		</span><br><span class="line">		<span class="comment">// 一. 将数据传递给不同的进程在进行计算</span></span><br><span class="line">		</span><br><span class="line">		<span class="comment">// 先计算需要通信的通信边界处的B的值</span></span><br><span class="line">		<span class="keyword">if</span>(end_row &gt;= begin_row)&#123;</span><br><span class="line">			<span class="keyword">for</span>(<span class="keyword">int</span> i = <span class="number">1</span> ; i &lt; N<span class="number">-1</span> ; ++i )&#123;</span><br><span class="line">				B[begin_row][i] = <span class="number">0.25</span>*( A[begin_row<span class="number">-1</span>][i] + A[begin_row+<span class="number">1</span>][i] + A[begin_row][i<span class="number">-1</span>] + A[begin_row][i+<span class="number">1</span>] ); </span><br><span class="line">				B[end_row][i] = <span class="number">0.25</span>*( A[end_row<span class="number">-1</span>][i] + A[end_row+<span class="number">1</span>][i] + A[end_row][i<span class="number">-1</span>] + A[end_row][i+<span class="number">1</span>] );</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		</span><br><span class="line">		<span class="comment">// 非阻塞发送 不管有没有成功 提出发出请求即可</span></span><br><span class="line">		MPI_Isend(B[<span class="number">1</span>] , N , MPI_DOUBLE , pre , tag1 , MPI_COMM_WORLD , &amp;request[<span class="number">0</span>]);</span><br><span class="line">		MPI_Isend(B[row_size] , N , MPI_DOUBLE , next , tag2 , MPI_COMM_WORLD , &amp;request[<span class="number">1</span>]);</span><br><span class="line"></span><br><span class="line">		MPI_Irecv(A[row_size + <span class="number">1</span>] , N , MPI_DOUBLE , next , tag1 ,MPI_COMM_WORLD,&amp;request[<span class="number">2</span>] );</span><br><span class="line">		MPI_Irecv(A[<span class="number">0</span>] , N , MPI_DOUBLE , pre , tag2 ,MPI_COMM_WORLD, &amp;request[<span class="number">3</span>] );</span><br><span class="line">		</span><br><span class="line">		<span class="comment">// 开始计算</span></span><br><span class="line">		<span class="keyword">for</span>(<span class="keyword">int</span> i = begin_row + <span class="number">1</span>; i &lt; end_row ; ++i)&#123;</span><br><span class="line">			<span class="keyword">for</span>(<span class="keyword">int</span> j = <span class="number">1</span> ; j &lt; N - <span class="number">1</span> ;  ++j)&#123;</span><br><span class="line">				B[i][j] = <span class="number">0.25</span> * ( A[i<span class="number">-1</span>][j] + A[i+<span class="number">1</span>][j] + A[i][j+<span class="number">1</span>] + A[i][j<span class="number">-1</span>] );</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		</span><br><span class="line">		<span class="comment">// 开始将计算结果复制回a矩阵中</span></span><br><span class="line">		<span class="keyword">for</span>(<span class="keyword">int</span> i = begin_row  ; i &lt;=end_row ; ++i)&#123;</span><br><span class="line">			<span class="keyword">for</span>(<span class="keyword">int</span> j = <span class="number">1</span>; j &lt; N<span class="number">-1</span> ;++j )&#123;</span><br><span class="line">				A[i][j] = B[i][j];</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		</span><br><span class="line">		<span class="keyword">int</span> flag = <span class="number">100</span>;</span><br><span class="line">		<span class="comment">// 一轮计算已经完成 必须要求之前的发送已经完成不然下一步计算不能完成, 发现非阻塞接收老是会出错,发送都是成功的</span></span><br><span class="line">		<span class="keyword">for</span>(<span class="keyword">int</span> i = <span class="number">0</span>;i&lt;<span class="number">4</span>;++i)&#123;</span><br><span class="line">			MPI_Test(&amp;request[i],&amp;flag,&amp;status);</span><br><span class="line">			<span class="keyword">if</span>(!flag)&#123;</span><br><span class="line">				MPI_Wait(&amp;request[i],&amp;status);</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 进程排序输出结果.</span></span><br><span class="line">	<span class="comment">// 保证有序的输出 第一个进程先输入 然后在第二进程.... </span></span><br><span class="line"></span><br><span class="line">	MPI_Barrier(MPI_COMM_WORLD);</span><br><span class="line">	<span class="keyword">if</span>(rank == <span class="number">0</span>)&#123;</span><br><span class="line">		<span class="keyword">int</span> aa = <span class="number">0</span>;</span><br><span class="line">		<span class="built_in">std</span>::<span class="built_in">cout</span>&lt;&lt;<span class="string">"(非阻塞) 最后计算后的结果: \n"</span>;</span><br><span class="line">		PrintMatrix(A,row_size,N,<span class="number">1</span>,<span class="number">0</span>);</span><br><span class="line">		MPI_Send( &amp;aa , <span class="number">1</span> , MPI_INT , next, <span class="number">1</span> , MPI_COMM_WORLD);</span><br><span class="line">	&#125;<span class="keyword">else</span></span><br><span class="line">	&#123;</span><br><span class="line">		<span class="keyword">int</span> bb = <span class="number">0</span> , aa = <span class="number">1</span> ; </span><br><span class="line">		MPI_Recv( &amp;bb, <span class="number">1</span> , MPI_INT , pre , <span class="number">1</span> , MPI_COMM_WORLD , &amp;status);</span><br><span class="line">		PrintMatrix(A,row_size,N,<span class="number">1</span>,<span class="number">0</span>);</span><br><span class="line">		MPI_Send( &amp;aa , <span class="number">1</span> , MPI_INT , next, <span class="number">1</span> , MPI_COMM_WORLD);	</span><br><span class="line">	&#125;</span><br><span class="line">	MPI_Barrier(MPI_COMM_WORLD);</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="4-非阻塞重复发送和接收"><a href="#4-非阻塞重复发送和接收" class="headerlink" title="4. 非阻塞重复发送和接收"></a>4. 非阻塞重复发送和接收</h3><p>使用非阻塞重复发送和接收的方式进行操作.</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 重复非阻塞发送接收 </span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">MPI_I_Send_jacobi_init</span><span class="params">(<span class="keyword">int</span> num)</span></span>&#123;</span><br><span class="line"></span><br><span class="line">	MPI_Status status[<span class="number">4</span>];</span><br><span class="line">	<span class="keyword">int</span> rank,size;</span><br><span class="line">	MPI_Comm comm = MPI_COMM_WORLD;</span><br><span class="line"></span><br><span class="line">	MPI_Comm_rank(comm,&amp;rank);</span><br><span class="line">	MPI_Comm_size(comm,&amp;size);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">int</span> row_size = N / size;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span>(rank == size - <span class="number">1</span> ) row_size = N - row_size * rank;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 给进程中的矩阵分配内存空间</span></span><br><span class="line">	<span class="keyword">double</span> **A,**B;</span><br><span class="line"></span><br><span class="line">	A = <span class="keyword">new</span> <span class="keyword">double</span>* [row_size+<span class="number">2</span>];</span><br><span class="line">	B = <span class="keyword">new</span> <span class="keyword">double</span>* [row_size+<span class="number">2</span>];</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span>(<span class="keyword">unsigned</span> <span class="keyword">int</span> i = <span class="number">0</span> ; i &lt; row_size+<span class="number">2</span> ; ++i)&#123;</span><br><span class="line">		A[i] = <span class="keyword">new</span> <span class="keyword">double</span>[N];</span><br><span class="line">		B[i] = <span class="keyword">new</span> <span class="keyword">double</span>[N]; </span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 初始化矩阵</span></span><br><span class="line">	<span class="comment">// 对于每个进程上的数据而言 只有1到row_size 之间行数据是真实本应该存放的</span></span><br><span class="line">	</span><br><span class="line">	<span class="comment">// 0 行数据是应该来自上一个进程的最后一行数据传入该行的数据 (此时初始化都为0)</span></span><br><span class="line">	<span class="comment">// row_size+1 行是应该是下一个进程第一行数据传入该行的数据</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span>(<span class="keyword">int</span> i = <span class="number">0</span> ; i &lt; row_size+<span class="number">2</span> ; ++i )&#123;</span><br><span class="line">	</span><br><span class="line">		<span class="keyword">for</span>(<span class="keyword">int</span> j = <span class="number">0</span> ; j &lt; N ; ++j )&#123;</span><br><span class="line">			<span class="keyword">if</span>(  (i == <span class="number">1</span> &amp;&amp; rank == <span class="number">0</span>) || (rank == size - <span class="number">1</span> &amp;&amp; i == row_size) ) A[i][j] = B[i][j] = NUM;  <span class="comment">// 第一个进程第一行 最后一个进程最后一行</span></span><br><span class="line">			<span class="keyword">else</span> <span class="keyword">if</span>(j == <span class="number">0</span> || j == N<span class="number">-1</span> ) A[i][j] = B[i][j]= NUM;</span><br><span class="line">			<span class="keyword">else</span> A[i][j] = B[i][j]= <span class="number">0</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 对于每个进程上的数据而言 只有1到row_size 之间行数据是真实本应该存放的</span></span><br><span class="line">	<span class="comment">// 0 行数据是应该来自上一个进程的最后一行数据传入该行的数据</span></span><br><span class="line">	<span class="comment">// row_size+1 行是应该是下一个进程第一行数据传入该行的数据</span></span><br><span class="line">	</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 由于第一个进程和最后一个进程的特殊性 引入虚拟进程的概念</span></span><br><span class="line">	<span class="comment">// 第一个进程第0行 没有上一个进程 所以不需要传入数据 最后一个进程没有下一个进程 也不需要传入数据</span></span><br><span class="line">	</span><br><span class="line">	<span class="keyword">int</span> pre,next; <span class="comment">// 记录当前进程的上一个进程和下一个进程</span></span><br><span class="line">	pre = rank - <span class="number">1</span>;</span><br><span class="line">	next = rank + <span class="number">1</span>;</span><br><span class="line">	<span class="keyword">if</span>(rank == <span class="number">0</span>)&#123;</span><br><span class="line">		pre = MPI_PROC_NULL;</span><br><span class="line">	&#125;<span class="keyword">else</span> <span class="keyword">if</span> (rank == size - <span class="number">1</span>)&#123;</span><br><span class="line">		next = MPI_PROC_NULL;</span><br><span class="line">	&#125;</span><br><span class="line">	</span><br><span class="line">	<span class="keyword">if</span>(rank == <span class="number">0</span>)&#123;</span><br><span class="line">		<span class="keyword">int</span> aa = <span class="number">1</span>;</span><br><span class="line">		<span class="built_in">std</span>::<span class="built_in">cout</span>&lt;&lt;<span class="string">"计算前A矩阵的结果: \n"</span>;</span><br><span class="line">		PrintMatrix(A,row_size,N,<span class="number">1</span>,<span class="number">0</span>);</span><br><span class="line">		MPI_Send( &amp;aa , <span class="number">1</span> , MPI_INT , next, <span class="number">1</span> , MPI_COMM_WORLD);</span><br><span class="line">	&#125;<span class="keyword">else</span></span><br><span class="line">	&#123;</span><br><span class="line">		<span class="keyword">int</span> bb = <span class="number">2</span> ,aa = <span class="number">1</span>; </span><br><span class="line">		MPI_Recv(&amp;bb, <span class="number">1</span> , MPI_INT , pre , <span class="number">1</span> , MPI_COMM_WORLD , &amp;status[<span class="number">0</span>]);</span><br><span class="line">		PrintMatrix(A,row_size,N,<span class="number">1</span>,<span class="number">0</span>);</span><br><span class="line">		MPI_Send(&amp;aa, <span class="number">1</span> , MPI_INT , next, <span class="number">1</span> , MPI_COMM_WORLD);	</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">int</span> tag1 = <span class="number">0</span> , tag2 = <span class="number">1</span>; <span class="comment">// 由于需要两次发送 保持两次发送的标志不同啊</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">int</span> begin_row , end_row ; </span><br><span class="line">	begin_row = <span class="number">1</span>;</span><br><span class="line">	end_row = row_size;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span>(rank == <span class="number">0</span> )&#123;</span><br><span class="line">		begin_row = <span class="number">2</span>;</span><br><span class="line">	&#125;<span class="keyword">else</span> <span class="keyword">if</span>( rank == size - <span class="number">1</span>)&#123;</span><br><span class="line">		end_row = row_size - <span class="number">1</span> ;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	MPI_Request request[<span class="number">4</span>];</span><br><span class="line">	</span><br><span class="line">	<span class="keyword">if</span>(rank == size - <span class="number">1</span> )&#123; <span class="comment">// 保证最后一个进程先接收 </span></span><br><span class="line">		MPI_Recv(A[<span class="number">0</span>] , N , MPI_DOUBLE , pre , tag1 , MPI_COMM_WORLD , &amp;status[<span class="number">0</span>] );</span><br><span class="line">	&#125;<span class="keyword">else</span>&#123;</span><br><span class="line">		MPI_Send(A[row_size] , N , MPI_DOUBLE , next , tag1 , MPI_COMM_WORLD );</span><br><span class="line">		MPI_Recv(A[<span class="number">0</span>] , N , MPI_DOUBLE , pre , tag1 , MPI_COMM_WORLD , &amp;status[<span class="number">0</span>] );</span><br><span class="line">	&#125;</span><br><span class="line">		</span><br><span class="line">	<span class="comment">// 2. 上一个进程最后一行接收 下一个进程的第1行</span></span><br><span class="line">	<span class="keyword">if</span>(rank == <span class="number">0</span> )&#123;</span><br><span class="line">		MPI_Recv(A[row_size+<span class="number">1</span>] , N , MPI_DOUBLE , next , tag2 , MPI_COMM_WORLD , &amp;status[<span class="number">0</span>]);</span><br><span class="line">	&#125;<span class="keyword">else</span>&#123;</span><br><span class="line">		MPI_Send(A[<span class="number">1</span>] , N , MPI_DOUBLE , pre , tag2 , MPI_COMM_WORLD );</span><br><span class="line">		MPI_Recv(A[row_size+<span class="number">1</span>] , N , MPI_DOUBLE , next , tag2 , MPI_COMM_WORLD , &amp;status[<span class="number">0</span>]);</span><br><span class="line">	&#125;</span><br><span class="line">	</span><br><span class="line">	<span class="comment">// 在进入循环之前 先创建一个重复非阻塞通信机制</span></span><br><span class="line"></span><br><span class="line">	MPI_Send_init(B[<span class="number">1</span>] , N , MPI_DOUBLE , pre , tag1 , MPI_COMM_WORLD , &amp;request[<span class="number">0</span>]);</span><br><span class="line">	MPI_Send_init(B[row_size] , N , MPI_DOUBLE , next , tag2 , MPI_COMM_WORLD , &amp;request[<span class="number">1</span>]);</span><br><span class="line"></span><br><span class="line">	MPI_Recv_init(A[row_size + <span class="number">1</span>] , N , MPI_DOUBLE , next , tag1 ,MPI_COMM_WORLD,&amp;request[<span class="number">2</span>] );</span><br><span class="line">	MPI_Recv_init(A[<span class="number">0</span>] , N , MPI_DOUBLE , pre , tag2 ,MPI_COMM_WORLD, &amp;request[<span class="number">3</span>] );</span><br><span class="line">		</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 开始执行雅可比迭代方法(假设迭代10步即可)</span></span><br><span class="line">	<span class="keyword">for</span>(<span class="keyword">int</span> k = <span class="number">0</span> ; k&lt;num ;++k)&#123;</span><br><span class="line">		</span><br><span class="line">		<span class="comment">// 先计算需要通信的通信边界处的B的值</span></span><br><span class="line">		<span class="keyword">if</span>(end_row &gt;= begin_row)&#123;</span><br><span class="line">			<span class="keyword">for</span>(<span class="keyword">int</span> i = <span class="number">1</span> ; i &lt; N<span class="number">-1</span> ; ++i )&#123;</span><br><span class="line">				B[begin_row][i] = <span class="number">0.25</span>*( A[begin_row<span class="number">-1</span>][i] + A[begin_row+<span class="number">1</span>][i] + A[begin_row][i<span class="number">-1</span>] + A[begin_row][i+<span class="number">1</span>] ); </span><br><span class="line">				B[end_row][i] = <span class="number">0.25</span>*( A[end_row<span class="number">-1</span>][i] + A[end_row+<span class="number">1</span>][i] + A[end_row][i<span class="number">-1</span>] + A[end_row][i+<span class="number">1</span>] );</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// 1. 开始所有的非阻塞通信</span></span><br><span class="line">		MPI_Startall(<span class="number">4</span>,request);</span><br><span class="line">		</span><br><span class="line">		<span class="comment">//可选 2. 也可以对非阻塞通信一个个启动</span></span><br><span class="line">		<span class="comment">// for(int i = 0;i&lt;4;++i)&#123;</span></span><br><span class="line">		<span class="comment">// 	MPI_Start(&amp;request[i]);</span></span><br><span class="line">		<span class="comment">// &#125;</span></span><br><span class="line">		</span><br><span class="line">		</span><br><span class="line">		<span class="comment">// 开始计算</span></span><br><span class="line">		<span class="keyword">for</span>(<span class="keyword">int</span> i = begin_row + <span class="number">1</span>; i &lt; end_row ; ++i)&#123;</span><br><span class="line">			<span class="keyword">for</span>(<span class="keyword">int</span> j = <span class="number">1</span> ; j &lt; N - <span class="number">1</span> ;  ++j)&#123;</span><br><span class="line">				B[i][j] = <span class="number">0.25</span> * ( A[i<span class="number">-1</span>][j] + A[i+<span class="number">1</span>][j] + A[i][j+<span class="number">1</span>] + A[i][j<span class="number">-1</span>] );</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		</span><br><span class="line">		<span class="comment">// 开始将计算结果复制回a矩阵中</span></span><br><span class="line">		<span class="keyword">for</span>(<span class="keyword">int</span> i = begin_row  ; i &lt;=end_row ; ++i)&#123;</span><br><span class="line">			<span class="keyword">for</span>(<span class="keyword">int</span> j = <span class="number">1</span>; j &lt; N<span class="number">-1</span> ;++j )&#123;</span><br><span class="line">				A[i][j] = B[i][j];</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		</span><br><span class="line">		</span><br><span class="line">		<span class="comment">// 等待所有非阻塞都完成 同时要求</span></span><br><span class="line">		MPI_Waitall(<span class="number">4</span>,request,status);</span><br><span class="line"></span><br><span class="line">		<span class="comment">// int flag = 100;</span></span><br><span class="line">		<span class="comment">// // 一轮计算已经完成 必须要求之前的发送已经完成不然下一步计算不能完成, 发现非阻塞接收老是会出错,发送都是成功的</span></span><br><span class="line">		<span class="comment">// for(int i = 0;i&lt;4;++i)&#123;</span></span><br><span class="line">		<span class="comment">// 	MPI_Test(&amp;request[i],&amp;flag,&amp;status);</span></span><br><span class="line">		<span class="comment">// 	if(!flag)&#123;</span></span><br><span class="line">		<span class="comment">// 		MPI_Wait(&amp;request[i],&amp;status);</span></span><br><span class="line">		<span class="comment">// 	&#125;</span></span><br><span class="line">		<span class="comment">// &#125;</span></span><br><span class="line"></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 进程排序输出结果.</span></span><br><span class="line">	<span class="comment">// 保证有序的输出 第一个进程先输入 然后在第二进程.... </span></span><br><span class="line"></span><br><span class="line">	MPI_Barrier(MPI_COMM_WORLD);</span><br><span class="line">	<span class="keyword">if</span>(rank == <span class="number">0</span>)&#123;</span><br><span class="line">		<span class="keyword">int</span> aa = <span class="number">0</span>;</span><br><span class="line">		<span class="built_in">std</span>::<span class="built_in">cout</span>&lt;&lt;<span class="string">"(非阻塞)重复循环 最后计算后的结果: \n"</span>;</span><br><span class="line">		PrintMatrix(A,row_size,N,<span class="number">1</span>,<span class="number">0</span>);</span><br><span class="line">		MPI_Send( &amp;aa , <span class="number">1</span> , MPI_INT , next, <span class="number">1</span> , MPI_COMM_WORLD);</span><br><span class="line">	&#125;<span class="keyword">else</span></span><br><span class="line">	&#123;</span><br><span class="line">		<span class="keyword">int</span> bb = <span class="number">0</span> , aa = <span class="number">1</span> ; </span><br><span class="line">		MPI_Recv( &amp;bb, <span class="number">1</span> , MPI_INT , pre , <span class="number">1</span> , MPI_COMM_WORLD , &amp;status[<span class="number">0</span>]);</span><br><span class="line">		PrintMatrix(A,row_size,N,<span class="number">1</span>,<span class="number">0</span>);</span><br><span class="line">		MPI_Send( &amp;aa , <span class="number">1</span> , MPI_INT , next, <span class="number">1</span> , MPI_COMM_WORLD);	</span><br><span class="line">	&#125;</span><br><span class="line">	MPI_Barrier(MPI_COMM_WORLD);</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="四种方法的计算结果"><a href="#四种方法的计算结果" class="headerlink" title="四种方法的计算结果."></a>四种方法的计算结果.</h3><p>由于利用的是一台机器多核计算来模拟MPI的环境，没有实现多节点之间的通信，所以造成计算结果不明显.</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc ,<span class="keyword">char</span> *argv[])</span></span>&#123;</span><br><span class="line">  </span><br><span class="line">	<span class="comment">// 开启MPI并行环境的建立</span></span><br><span class="line">	MPI_Init(&amp;argc,&amp;argv);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">int</span> rank,size;</span><br><span class="line">	MPI_Comm_rank(MPI_COMM_WORLD,&amp;rank);</span><br><span class="line">	MPI_Comm_size(MPI_COMM_WORLD,&amp;size);</span><br><span class="line">	</span><br><span class="line">	<span class="keyword">int</span> num = <span class="number">1</span>;</span><br><span class="line">	<span class="keyword">double</span> begin,end;</span><br><span class="line">	MPI_Barrier(MPI_COMM_WORLD);</span><br><span class="line">	begin = MPI_Wtime();</span><br><span class="line">	</span><br><span class="line">	<span class="comment">// 调用阻塞版本的MPI发送</span></span><br><span class="line">	MPI_Send_jacobi(num);  <span class="comment">// 鲁棒性最好  不管不管多少进程计算结果都一样</span></span><br><span class="line">	</span><br><span class="line">	MPI_Barrier(MPI_COMM_WORLD);</span><br><span class="line">	end = MPI_Wtime();</span><br><span class="line">	<span class="keyword">if</span>(rank == <span class="number">0</span>) <span class="built_in">printf</span>(<span class="string">"(阻塞) 版本的时间花费%f\n"</span>, end - begin);</span><br><span class="line">	</span><br><span class="line">	</span><br><span class="line">	MPI_Barrier(MPI_COMM_WORLD);</span><br><span class="line">	begin = MPI_Wtime();</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 调用阻塞版本的发送和接收绑定发送. </span></span><br><span class="line">	MPI_Send_jacobi_2(num);  <span class="comment">// 存在错误 逻辑每对好 修改了错误 正常了</span></span><br><span class="line">	</span><br><span class="line">	MPI_Barrier(MPI_COMM_WORLD);</span><br><span class="line">	end = MPI_Wtime();</span><br><span class="line">	<span class="keyword">if</span>(rank == <span class="number">0</span>) <span class="built_in">printf</span>(<span class="string">"(阻塞)绑定 版本的时间花费%f\n"</span>, end - begin);</span><br><span class="line">	</span><br><span class="line">	MPI_Barrier(MPI_COMM_WORLD);</span><br><span class="line">	begin = MPI_Wtime();</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 调用非阻塞版本</span></span><br><span class="line">	MPI_ISend_jacobi(num);</span><br><span class="line"></span><br><span class="line">	MPI_Barrier(MPI_COMM_WORLD);</span><br><span class="line">	end = MPI_Wtime();</span><br><span class="line">	<span class="keyword">if</span>(rank == <span class="number">0</span>) <span class="built_in">printf</span>(<span class="string">"(非阻塞) 版本的时间花费%f\n"</span>, end - begin);</span><br><span class="line">	</span><br><span class="line">	MPI_Barrier(MPI_COMM_WORLD);</span><br><span class="line">	begin = MPI_Wtime();</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 调用循环的非阻塞版本</span></span><br><span class="line">	MPI_I_Send_jacobi_init(num);</span><br><span class="line"></span><br><span class="line">	MPI_Barrier(MPI_COMM_WORLD);</span><br><span class="line">	end = MPI_Wtime();</span><br><span class="line">	<span class="keyword">if</span>(rank == <span class="number">0</span>) <span class="built_in">printf</span>(<span class="string">"(非阻塞)重复 版本的时间花费%f\n"</span>, end - begin);</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 结束MPI的并行  </span></span><br><span class="line">  MPI_Finalize();</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="计算结果"><a href="#计算结果" class="headerlink" title="计算结果."></a>计算结果.</h4><p>使用了命令$mpirun -n 2 ./a.out$,两个进程进行计算，目的就是为了测试计算结果.</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br></pre></td><td class="code"><pre><span class="line">初始化矩阵A值:</span><br><span class="line">       100         100         100         100         100         100         100         100  </span><br><span class="line">       100           0           0           0           0           0           0         100  </span><br><span class="line">       100           0           0           0           0           0           0         100  </span><br><span class="line">       100           0           0           0           0           0           0         100  </span><br><span class="line">       100           0           0           0           0           0           0         100  </span><br><span class="line">       100           0           0           0           0           0           0         100  </span><br><span class="line">       100           0           0           0           0           0           0         100  </span><br><span class="line">       100         100         100         100         100         100         100         100  </span><br><span class="line">(阻塞) 最后计算后的结果: </span><br><span class="line">       100         100         100         100         100         100         100         100  </span><br><span class="line">       100          50          25          25          25          25          50         100  </span><br><span class="line">       100          25           0           0           0           0          25         100  </span><br><span class="line">       100          25           0           0           0           0          25         100  </span><br><span class="line">       100          25           0           0           0           0          25         100  </span><br><span class="line">       100          25           0           0           0           0          25         100  </span><br><span class="line">       100          50          25          25          25          25          50         100  </span><br><span class="line">       100         100         100         100         100         100         100         100  </span><br><span class="line">(阻塞) 版本的时间花费0.000539</span><br><span class="line">初始化矩阵A的值为:</span><br><span class="line">       100         100         100         100         100         100         100         100  </span><br><span class="line">       100           0           0           0           0           0           0         100  </span><br><span class="line">       100           0           0           0           0           0           0         100  </span><br><span class="line">       100           0           0           0           0           0           0         100  </span><br><span class="line">       100           0           0           0           0           0           0         100  </span><br><span class="line">       100           0           0           0           0           0           0         100  </span><br><span class="line">       100           0           0           0           0           0           0         100  </span><br><span class="line">       100         100         100         100         100         100         100         100  </span><br><span class="line">(阻塞)合并发送接收 最后计算后的结果: </span><br><span class="line">       100         100         100         100         100         100         100         100  </span><br><span class="line">       100          50          25          25          25          25          50         100  </span><br><span class="line">       100          25           0           0           0           0          25         100  </span><br><span class="line">       100          25           0           0           0           0          25         100  </span><br><span class="line">       100          25           0           0           0           0          25         100  </span><br><span class="line">       100  (阻塞)绑定 版本的时间花费0.000483</span><br><span class="line">计算前A矩阵的结果: </span><br><span class="line">       100         100         100         100         100         100         100         100  </span><br><span class="line">       100           0           0           0        25           0           0           0           0          25         100  </span><br><span class="line">       100          50          25          25          25          25          50         100  </span><br><span class="line">       100         100         100         100         100         100         100         100  </span><br><span class="line">           0           0           0         100  </span><br><span class="line">       100           0           0           0           0           0           0         100  </span><br><span class="line">       100           0           0           0           0           0           0         100  </span><br><span class="line">       100           0           0           0           0           0           0         100  </span><br><span class="line">       100           0           0           0           0           0           0         100  </span><br><span class="line">       100           0           0           0           0           0           0         100  </span><br><span class="line">       100         100         100         100         100         100         100         100  </span><br><span class="line">(非阻塞) 最后计算后的结果: </span><br><span class="line">       100         100         100         100         100         100         100         100  </span><br><span class="line">       100          50          25          25          25          25          50         100  </span><br><span class="line">       100          25           0           0           0           0          25         100  </span><br><span class="line">       100          25           0           0           0           0          25         100  </span><br><span class="line">       100          25           0           0           0           0          25         100  </span><br><span class="line">       100          25           0           0           0           0          25         100  </span><br><span class="line">       100          50          25          25          25          25          50         100  </span><br><span class="line">       100         100         100         100         100         100         100         100  </span><br><span class="line">(非阻塞) 版本的时间花费0.000531</span><br><span class="line">计算前A矩阵的结果: </span><br><span class="line">       100         100         100         100         100         100         100         100  </span><br><span class="line">       100           0           0           0           0           0           0         100  </span><br><span class="line">       100           0           0           0           0           0           0         100  </span><br><span class="line">       100           0           0           0           0           0           0         100  </span><br><span class="line">       100           0           0           0           0           0           0         100  </span><br><span class="line">       100           0           0           0           0           0           0         100  </span><br><span class="line">       100           0           0           0           0           0           0         100  </span><br><span class="line">       100         100         100         100         100         100         100         100  </span><br><span class="line">(非阻塞)重复循环 最后计算后的结果: </span><br><span class="line">       100         100         100         100         100         100         100         100  </span><br><span class="line">       100          50          25          25          25          25          50         100  </span><br><span class="line">       100          25           0           0           0           0          25         100  </span><br><span class="line">       100          25           0           0           0           0          25         100  </span><br><span class="line">       100          25           0           0           0           0          25         100  </span><br><span class="line">       100          25           0           0           0           0          25         100  </span><br><span class="line">       100          50          25          25          25          25          50         100  </span><br><span class="line">       100         100         100         100         100         100         100         100  </span><br><span class="line">(非阻塞)重复 版本的时间花费0.000491</span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/c/" rel="tag"># c++</a>
+          
+            <a href="/tags/MPI/" rel="tag"># MPI</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">ermore</p>
+              <div class="site-description motion-element" itemprop="description">miaozh个人站，主要涉及个人学习知识共享、实践教程、前沿技术，生活爱好等各个方面</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">1</span>
+                    <span class="site-state-item-name">posts</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                    
+                      
+                    
+                    <span class="site-state-item-count">1</span>
+                    <span class="site-state-item-name">categories</span>
+                  
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">2</span>
+                    <span class="site-state-item-name">tags</span>
+                  
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#jacobi-迭代并行计算的几种实现"><span class="nav-number">1.</span> <span class="nav-text">jacobi 迭代并行计算的几种实现</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#jacobi迭代算法基本思路和串行版本的实现"><span class="nav-number">1.1.</span> <span class="nav-text">jacobi迭代算法基本思路和串行版本的实现</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#jacobi迭代的串行版本-c"><span class="nav-number">1.1.1.</span> <span class="nav-text">jacobi迭代的串行版本(c++)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#并行版本的jacobi思路和实现"><span class="nav-number">1.2.</span> <span class="nav-text">并行版本的jacobi思路和实现.</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#并行版本的jacobi思路"><span class="nav-number">1.2.1.</span> <span class="nav-text">并行版本的jacobi思路</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#原则划分"><span class="nav-number">1.2.1.1.</span> <span class="nav-text">原则划分</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#细节处理"><span class="nav-number">1.2.1.2.</span> <span class="nav-text">细节处理</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#使用不同通信方式计算jacobi迭代的值"><span class="nav-number">1.2.2.</span> <span class="nav-text">使用不同通信方式计算jacobi迭代的值.</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-阻塞式发送接收"><span class="nav-number">1.2.2.1.</span> <span class="nav-text">1. 阻塞式发送接收</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-捆绑阻塞式发送接收"><span class="nav-number">1.2.3.</span> <span class="nav-text">2. 捆绑阻塞式发送接收</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-非阻塞发送和接收"><span class="nav-number">1.2.4.</span> <span class="nav-text">3. 非阻塞发送和接收</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-非阻塞重复发送和接收"><span class="nav-number">1.2.5.</span> <span class="nav-text">4. 非阻塞重复发送和接收</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#四种方法的计算结果"><span class="nav-number">1.2.6.</span> <span class="nav-text">四种方法的计算结果.</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#计算结果"><span class="nav-number">1.2.6.1.</span> <span class="nav-text">计算结果.</span></a></li></ol></li></ol></li></ol></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">ermore</span>
+
+  
+
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/src/utils.js?v=7.0.1"></script>
+
+  <script src="/js/src/motion.js?v=7.0.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/src/schemes/muse.js?v=7.0.1"></script>
+
+
+
+
+  
+  <script src="/js/src/scrollspy.js?v=7.0.1"></script>
+<script src="/js/src/post-details.js?v=7.0.1"></script>
+
+
+
+  
+
+
+  <script src="/js/src/next-boot.js?v=7.0.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+  
+    
+      <script type="text/x-mathjax-config">
+  
+
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
+      processEscapes: true,
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    TeX: {
+      
+      equationNumbers: {
+        autoNumber: 'AMS'
+      }
+    }
+  });
+  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
+    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
+      if (data.display) {
+        var next = data.script.nextSibling;
+        while (next && next.nodeName.toLowerCase() === '#text') { next = next.nextSibling }
+        if (next && next.nodeName.toLowerCase() === 'br') { next.parentNode.removeChild(next) }
+      }
+    });
+  });
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for (i = 0; i < all.length; i += 1) {
+      document.getElementById(all[i].inputID + '-Frame').parentNode.className += ' has-jax';
+    }
+  });
+</script>
+<script src="//cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script><!-- hexo-inject:begin --><!-- Begin: Injected MathJax -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({"tex2jax":{"inlineMath":[["$","$"],["\\(","\\)"]],"skipTags":["script","noscript","style","textarea","pre","code"],"processEscapes":true},"TeX":{"equationNumbers":{"autoNumber":"AMS"}}});
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+      all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+  });
+</script>
+
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js">
+</script>
+<!-- End: Injected MathJax -->
+<!-- hexo-inject:end -->
+
+    
+  
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
